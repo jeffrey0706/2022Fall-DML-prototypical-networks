@@ -1,5 +1,5 @@
 from tqdm import tqdm
-
+import sys
 class Engine(object):
     def __init__(self):
         hook_names = ['on_start', 'on_start_epoch', 'on_sample', 'on_forward',
@@ -48,7 +48,10 @@ class Engine(object):
                 state['t'] += 1
                 state['batch'] += 1
                 self.hooks['on_update'](state)
-
+                
+                # for key in self.hooks.keys():
+                #     print(sys.getsizeof(self.hooks[key]))
+                
             state['epoch'] += 1
             state['batch'] = 0
             self.hooks['on_end_epoch'](state)

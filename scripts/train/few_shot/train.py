@@ -32,6 +32,9 @@ def main(opt):
     opt['model.x_dim'] = list(map(int, opt['model.x_dim'].split(',')))
     opt['log.fields'] = opt['log.fields'].split(',')
 
+    print('\n\nopt : ', opt)
+    # print(a)
+
     torch.manual_seed(1234)
     if opt['data.cuda']:
         torch.cuda.manual_seed(1234)
@@ -98,10 +101,10 @@ def main(opt):
         if val_loader is not None:
             if meter_vals['val']['loss'] < hook_state['best_loss']:
                 hook_state['best_loss'] = meter_vals['val']['loss']
-                print("==> best model (loss = {:0.6f}), saving model...".format(hook_state['best_loss']))
+                print("\n==> best model (loss = {:0.6f}), saving model...\n".format(hook_state['best_loss']))
 
                 state['model'].cpu()
-                torch.save(state['model'], os.path.join(opt['log.exp_dir'], 'best_model.pt'))
+                torch.save(state['model'], os.path.join(opt['log.exp_dir'], 'best_model_%s.pt'%(opt['model.dist'])))
                 if opt['data.cuda']:
                     state['model'].cuda()
 
@@ -114,7 +117,7 @@ def main(opt):
                     state['stop'] = True
         else:
             state['model'].cpu()
-            torch.save(state['model'], os.path.join(opt['log.exp_dir'], 'best_model.pt'))
+            torch.save(state['model'], os.path.join(opt['log.exp_dir'], 'best_model_%s.pt'%(opt['model.dist'])))
             if opt['data.cuda']:
                 state['model'].cuda()
 

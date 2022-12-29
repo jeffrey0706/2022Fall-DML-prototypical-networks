@@ -6,7 +6,7 @@ from torch.autograd import Variable
 
 from protonets.models import register_model
 
-from .utils import euclidean_dist
+from .utils import *
 
 class Flatten(nn.Module):
     def __init__(self):
@@ -16,10 +16,11 @@ class Flatten(nn.Module):
         return x.view(x.size(0), -1)
 
 class Protonet(nn.Module):
-    def __init__(self, encoder):
+    def __init__(self, encoder, dist):
         super(Protonet, self).__init__()
         
         self.encoder = encoder
+        self.dist = dist
 
     def loss(self, sample):
         xs = Variable(sample['xs']) # support
@@ -42,10 +43,26 @@ class Protonet(nn.Module):
         z = self.encoder.forward(x)
         z_dim = z.size(-1)
 
+        # print(z[:n_class*n_support].view(n_class, n_support, z_dim).shape)
         z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
+        # print(z_proto.shape)
+        # print(a)
         zq = z[n_class*n_support:]
 
-        dists = euclidean_dist(zq, z_proto)
+        # match self.dist:
+        #     case "euclidean":
+        #         dists = euclidean_dist(zq, z_proto)
+        #     case " cosine":
+        #         dists = cosine_dist(zq, z_proto)
+        #     case "l1":
+        #         dists = l1_dist(zq, z_proto)
+
+        if self.dist == 'euclidean':
+            dists = euclidean_dist(zq, z_proto)
+        elif self.dist == 'cosine':
+            dists = cosine_dist(zq, z_proto)
+        elif self.dist == 'l1':
+            dists = l1_dist(zq, z_proto)
 
         log_p_y = F.log_softmax(-dists, dim=1).view(n_class, n_query, -1)
 
@@ -64,6 +81,7 @@ def load_protonet_conv(**kwargs):
     x_dim = kwargs['x_dim']
     hid_dim = kwargs['hid_dim']
     z_dim = kwargs['z_dim']
+    dist = kwargs['dist']
 
     def conv_block(in_channels, out_channels):
         return nn.Sequential(
@@ -81,4 +99,4 @@ def load_protonet_conv(**kwargs):
         Flatten()
     )
 
-    return Protonet(encoder)
+    return Protonet(encoder, dist)
