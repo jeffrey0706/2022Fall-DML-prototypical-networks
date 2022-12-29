@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# from torchinfo import summary
+
 from torch.autograd import Variable
 
 from protonets.models import register_model
@@ -16,11 +18,14 @@ class Flatten(nn.Module):
         return x.view(x.size(0), -1)
 
 class Protonet(nn.Module):
-    def __init__(self, encoder, dist):
+    def __init__(self, encoder, projector=None, dist='euclidean'):
         super(Protonet, self).__init__()
         
         self.encoder = encoder
+        self.projector = projector
         self.dist = dist
+
+        # summary(encoder, (1,28,28))
 
     def loss(self, sample):
         xs = Variable(sample['xs']) # support
@@ -43,19 +48,19 @@ class Protonet(nn.Module):
         z = self.encoder.forward(x)
         z_dim = z.size(-1)
 
-        # print(z[:n_class*n_support].view(n_class, n_support, z_dim).shape)
-        z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
-        # print(z_proto.shape)
-        # print(a)
+        # print('1', z[:n_class*n_support].shape)
+        # print('2', z[:n_class*n_support].view(n_class, n_support, z_dim).shape)
+        # print('3', z[n_class*n_support:].shape)
+        # assert False
+
+        if self.projector:
+            z_proto = self.projector.forward(z[:n_class*n_support].view(n_class, n_support, z_dim))
+            # z_proto = z_proto.view(n_class, z_dim)
+        else:
+            z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
         zq = z[n_class*n_support:]
 
-        # match self.dist:
-        #     case "euclidean":
-        #         dists = euclidean_dist(zq, z_proto)
-        #     case " cosine":
-        #         dists = cosine_dist(zq, z_proto)
-        #     case "l1":
-        #         dists = l1_dist(zq, z_proto)
+        # print('2', z_proto.shape)
 
         if self.dist == 'euclidean':
             dists = euclidean_dist(zq, z_proto)
@@ -78,6 +83,7 @@ class Protonet(nn.Module):
 
 @register_model('protonet_conv')
 def load_protonet_conv(**kwargs):
+    print(kwargs)
     x_dim = kwargs['x_dim']
     hid_dim = kwargs['hid_dim']
     z_dim = kwargs['z_dim']
@@ -90,6 +96,13 @@ def load_protonet_conv(**kwargs):
             nn.ReLU(),
             nn.MaxPool2d(2)
         )
+    
+    def conv_block_proj(in_channels, out_channels):
+        return nn.Sequential(
+            nn.Conv1d(in_channels, out_channels, 3, padding=1),
+            nn.BatchNorm1d(out_channels),
+            nn.ReLU()
+        )
 
     encoder = nn.Sequential(
         conv_block(x_dim[0], hid_dim),
@@ -99,4 +112,14 @@ def load_protonet_conv(**kwargs):
         Flatten()
     )
 
-    return Protonet(encoder, dist)
+    # summary(encoder, x_dim)
+
+    projector = nn.Sequential(
+        conv_block_proj(5, hid_dim),
+        conv_block_proj(hid_dim, hid_dim),
+        conv_block_proj(hid_dim, hid_dim),
+        conv_block_proj(hid_dim, 1),
+        Flatten()
+    )
+
+    return Protonet(encoder, None, dist)

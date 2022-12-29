@@ -32,7 +32,7 @@ def main(opt):
     opt['model.x_dim'] = list(map(int, opt['model.x_dim'].split(',')))
     opt['log.fields'] = opt['log.fields'].split(',')
 
-    print('\n\nopt : ', opt)
+    # print('\n\nopt : ', opt)
     # print(a)
 
     torch.manual_seed(1234)

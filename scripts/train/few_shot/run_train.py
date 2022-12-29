@@ -24,7 +24,7 @@ parser.add_argument('--data.query', type=int, default=15, metavar='QUERY',
                     help="number of query examples per class (default: 15)")
 parser.add_argument('--data.test_way', type=int, default=20, metavar='TESTWAY',
                     help="number of classes per episode in test. 0 means same as data.way (default: 20)")
-parser.add_argument('--data.test_shot', type=int, default=1, metavar='TESTSHOT',
+parser.add_argument('--data.test_shot', type=int, default=0, metavar='TESTSHOT',
                     help="number of support examples per class in test. 0 means same as data.shot (default: 1)")
 parser.add_argument('--data.test_query', type=int, default=15, metavar='TESTQUERY',
                     help="number of query examples per class in test. 0 means same as data.query (default: 15)")
